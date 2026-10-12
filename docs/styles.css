@@ -93,7 +93,7 @@ h1 {
   border-radius: 999px;
   padding: 0.8rem 1.1rem;
   font-weight: 600;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .primary-btn {
@@ -407,6 +407,7 @@ h1 {
 .repo-actions {
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .repo-link {
@@ -414,6 +415,15 @@ h1 {
   color: #c4b5fd;
   font-weight: 600;
   font-size: 0.82rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid rgba(196, 181, 253, 0.3);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.repo-link:hover {
+  background: rgba(196, 181, 253, 0.1);
+  border-color: rgba(196, 181, 253, 0.5);
 }
 
 .mini-btn {
@@ -422,11 +432,31 @@ h1 {
   color: var(--text);
   font-size: 0.72rem;
   padding: 0.55rem 0.7rem;
+  transition: all 0.2s ease;
+}
+
+.mini-btn:hover {
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.edit-btn {
+  border-color: rgba(139, 92, 246, 0.4) !important;
+  color: #c4b5fd !important;
+}
+
+.edit-btn:hover {
+  background: rgba(139, 92, 246, 0.15) !important;
+  border-color: rgba(139, 92, 246, 0.6) !important;
 }
 
 .delete-btn {
   border-color: rgba(248, 113, 113, 0.35);
   color: #fca5a5;
+}
+
+.delete-btn:hover {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.5);
 }
 
 .modal {
