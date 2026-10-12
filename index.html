@@ -23,7 +23,7 @@
           <p class="eyebrow">GitHub activity</p>
           <h1>Stargazers Log</h1>
         </div>
-        <button class="primary-btn" type="button">+ Add repo</button>
+        <button class="primary-btn" id="open-add-modal" type="button">+ Add repo</button>
       </header>
 
       <main class="content">
@@ -42,31 +42,66 @@
               <span class="stat-label">Repos</span>
             </div>
             <div class="stat-box">
-              <span class="stat-value">12</span>
+              <span class="stat-value" id="language-count">0</span>
               <span class="stat-label">Languages</span>
             </div>
             <div class="stat-box">
-              <span class="stat-value">2026</span>
+              <span class="stat-value" id="year-label">2026</span>
               <span class="stat-label">Year</span>
             </div>
           </div>
         </section>
 
         <section class="toolbar card">
-          <label class="search-wrap" for="repo-search">
-            <span class="sr-only">Search repositories</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                d="M10.5 3a7.5 7.5 0 015.94 12.56l4.39 4.39 1.41-1.41-4.39-4.39A7.5 7.5 0 1110.5 3zm0 2a5.5 5.5 0 104.2 9.4 5.5 5.5 0 00-4.2-9.4z"
+          <div class="toolbar-row">
+            <label class="search-wrap" for="repo-search">
+              <span class="sr-only">Search repositories</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M10.5 3a7.5 7.5 0 015.94 12.56l4.39 4.39 1.41-1.41-4.39-4.39A7.5 7.5 0 1110.5 3zm0 2a5.5 5.5 0 104.2 9.4 5.5 5.5 0 00-4.2-9.4z"
+                />
+              </svg>
+              <input
+                id="repo-search"
+                type="search"
+                placeholder="Search repositories..."
+                aria-label="Search repositories"
               />
-            </svg>
-            <input
-              id="repo-search"
-              type="search"
-              placeholder="Search repositories..."
-              aria-label="Search repositories"
-            />
-          </label>
+            </label>
+
+            <div class="toolbar-actions">
+              <label class="username-field" for="github-username">
+                <span>GitHub user</span>
+                <input id="github-username" type="text" value="anzedHLB" />
+              </label>
+              <button class="secondary-btn" id="refresh-repos" type="button">Refresh</button>
+            </div>
+          </div>
+
+          <div class="toolbar-row secondary-row">
+            <div class="sort-group" aria-label="Sorting options">
+              <span class="sort-label">Sort</span>
+              <select id="sort-select">
+                <option value="date-desc">Date: newest</option>
+                <option value="date-asc">Date: oldest</option>
+                <option value="name-asc">Name: A-Z</option>
+                <option value="name-desc">Name: Z-A</option>
+                <option value="language-asc">Language: A-Z</option>
+              </select>
+            </div>
+
+            <div class="tag-group" aria-label="Filter by tag">
+              <span class="sort-label">Tag</span>
+              <select id="tag-filter">
+                <option value="all">All</option>
+                <option value="frontend">Frontend</option>
+                <option value="backend">Backend</option>
+                <option value="learning">Learning</option>
+                <option value="tools">Tools</option>
+                <option value="database">Database</option>
+              </select>
+            </div>
+          </div>
         </section>
 
         <section class="list-header">
@@ -74,8 +109,60 @@
           <span id="results-label">0 results</span>
         </section>
 
+        <div id="status-message" class="status-message" aria-live="polite"></div>
+
         <section id="repo-list" class="repo-list" aria-live="polite"></section>
       </main>
+    </div>
+
+    <div class="modal hidden" id="add-repo-modal" aria-hidden="true">
+      <div class="modal-backdrop" data-close="true"></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-header">
+          <h3 id="modal-title">Add repository</h3>
+          <button class="close-btn" id="close-add-modal" type="button" aria-label="Close">×</button>
+        </div>
+
+        <form id="repo-form">
+          <div class="form-grid">
+            <label>
+              <span>Owner</span>
+              <input type="text" name="owner" placeholder="microsoft" required />
+            </label>
+            <label>
+              <span>Repository</span>
+              <input type="text" name="name" placeholder="vscode" required />
+            </label>
+            <label class="full-width">
+              <span>Description</span>
+              <textarea name="description" rows="3" placeholder="Short description..."></textarea>
+            </label>
+            <label>
+              <span>Language</span>
+              <input type="text" name="language" placeholder="TypeScript" />
+            </label>
+            <label>
+              <span>Date</span>
+              <input type="date" name="date" />
+            </label>
+            <label class="full-width">
+              <span>Category</span>
+              <select name="tag">
+                <option value="frontend">Frontend</option>
+                <option value="backend">Backend</option>
+                <option value="learning">Learning</option>
+                <option value="tools">Tools</option>
+                <option value="database">Database</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="modal-actions">
+            <button class="secondary-btn" type="button" id="cancel-add-repo">Cancel</button>
+            <button class="primary-btn" type="submit">Save repo</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <template id="repo-card-template">
@@ -95,6 +182,7 @@
             <span class="language-dot"></span>
             <span class="language-name"></span>
           </span>
+          <span class="repo-tag"></span>
           <span class="repo-date"></span>
         </div>
       </article>
