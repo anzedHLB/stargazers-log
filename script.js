@@ -5,6 +5,10 @@ const FALLBACK_REPOS = [
     description: 'Visual Studio Code — a lightweight but powerful source code editor.',
     language: 'TypeScript',
     tag: 'frontend',
+    stars: 210000,
+    forks: 26000,
+    issues: 2600,
+    url: 'https://github.com/microsoft/vscode',
     date: '2026-09-12',
   },
   {
@@ -13,6 +17,10 @@ const FALLBACK_REPOS = [
     description: 'The React framework for building full-stack web applications.',
     language: 'JavaScript',
     tag: 'frontend',
+    stars: 150000,
+    forks: 32000,
+    issues: 5400,
+    url: 'https://github.com/vercel/next.js',
     date: '2026-08-27',
   },
   {
@@ -21,6 +29,10 @@ const FALLBACK_REPOS = [
     description: 'A utility-first CSS framework for rapidly building custom designs.',
     language: 'CSS',
     tag: 'frontend',
+    stars: 84000,
+    forks: 4900,
+    issues: 260,
+    url: 'https://github.com/tailwindlabs/tailwindcss',
     date: '2026-08-09',
   },
   {
@@ -29,6 +41,10 @@ const FALLBACK_REPOS = [
     description: 'Node.js JavaScript runtime built on Chrome V8 engine.',
     language: 'JavaScript',
     tag: 'backend',
+    stars: 120000,
+    forks: 34000,
+    issues: 1900,
+    url: 'https://github.com/nodejs/node',
     date: '2026-07-18',
   },
   {
@@ -37,6 +53,10 @@ const FALLBACK_REPOS = [
     description: 'A library for building user interfaces with declarative components.',
     language: 'JavaScript',
     tag: 'learning',
+    stars: 230000,
+    forks: 48000,
+    issues: 4300,
+    url: 'https://github.com/facebook/react',
     date: '2026-06-30',
   },
   {
@@ -45,6 +65,10 @@ const FALLBACK_REPOS = [
     description: 'The Python programming language and standard library implementation.',
     language: 'Python',
     tag: 'learning',
+    stars: 66000,
+    forks: 19000,
+    issues: 850,
+    url: 'https://github.com/python/cpython',
     date: '2026-06-04',
   },
 ];
@@ -80,6 +104,17 @@ function getCustomRepos() {
   } catch (error) {
     return [];
   }
+}
+
+function formatNumber(value) {
+  if (value === undefined || value === null || Number.isNaN(Number(value))) {
+    return '0';
+  }
+
+  return new Intl.NumberFormat('en-US', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(Number(value));
 }
 
 function formatDate(dateString) {
@@ -165,6 +200,14 @@ function renderRepos(items) {
     card.querySelector('.language-name').textContent = repo.language || 'Unknown';
     card.querySelector('.repo-tag').textContent = repo.tag || 'general';
     card.querySelector('.repo-date').textContent = formatDate(repo.date);
+    card.querySelector('.repo-stars').textContent = formatNumber(repo.stars || 0);
+    card.querySelector('.repo-forks').textContent = formatNumber(repo.forks || 0);
+    card.querySelector('.repo-issues').textContent = formatNumber(repo.issues || 0);
+
+    const repoLink = card.querySelector('.repo-link');
+    const repoUrl = repo.url || `https://github.com/${repo.owner}/${repo.name}`;
+    repoLink.href = repoUrl;
+
     repoList.appendChild(card);
   });
 
@@ -186,6 +229,10 @@ function normalizeRepo(repo) {
     description: repo.description || 'No description provided.',
     language: repo.language || 'Unknown',
     tag: repo.tag || 'learning',
+    stars: repo.stargazers_count || 0,
+    forks: repo.forks_count || 0,
+    issues: repo.open_issues_count || 0,
+    url: repo.html_url || `https://github.com/${repo.owner.login || repo.owner}/${repo.name}`,
     date: repo.pushed_at || repo.updated_at || repo.created_at || new Date().toISOString(),
   };
 }
@@ -253,6 +300,10 @@ function addCustomRepo(event) {
     description: description || 'Added manually to your log.',
     language: language || 'Custom',
     tag,
+    stars: 0,
+    forks: 0,
+    issues: 0,
+    url: `https://github.com/${owner}/${name}`,
     date: date || new Date().toISOString(),
   };
 

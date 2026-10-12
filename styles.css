@@ -51,7 +51,9 @@ button {
 .repo-topline,
 .repo-meta,
 .toolbar-row,
-.modal-actions {
+.modal-actions,
+.repo-footer,
+.repo-stats {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -369,6 +371,32 @@ h1 {
   font-size: 0.8rem;
 }
 
+.repo-footer {
+  gap: 12px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.repo-stats {
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.repo-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.repo-link {
+  text-decoration: none;
+  color: #c4b5fd;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
 .modal {
   position: fixed;
   inset: 0;
@@ -467,7 +495,8 @@ h1 {
   .list-header,
   .toolbar-row,
   .toolbar-actions,
-  .modal-actions {
+  .modal-actions,
+  .repo-footer {
     align-items: flex-start;
     flex-direction: column;
     gap: 14px;
