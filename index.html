@@ -159,7 +159,7 @@
 
           <div class="modal-actions">
             <button class="secondary-btn" type="button" id="cancel-add-repo">Cancel</button>
-            <button class="primary-btn" type="submit">Save repo</button>
+            <button class="primary-btn" type="submit" id="repo-form-submit">Save repo</button>
           </div>
         </form>
       </div>
@@ -192,6 +192,12 @@
             <span class="repo-stat">⎇ <strong class="repo-forks">0</strong></span>
             <span class="repo-stat">● <strong class="repo-issues">0</strong></span>
           </div>
+
+          <div class="repo-actions">
+            <button class="mini-btn edit-btn" type="button" data-action="edit">Edit</button>
+            <button class="mini-btn delete-btn" type="button" data-action="delete">Delete</button>
+          </div>
+
           <a class="repo-link" href="#" target="_blank" rel="noreferrer">Open repo</a>
         </div>
       </article>

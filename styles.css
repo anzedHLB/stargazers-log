@@ -53,7 +53,8 @@ button {
 .toolbar-row,
 .modal-actions,
 .repo-footer,
-.repo-stats {
+.repo-stats,
+.repo-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -87,7 +88,8 @@ h1 {
 }
 
 .primary-btn,
-.secondary-btn {
+.secondary-btn,
+.mini-btn {
   border-radius: 999px;
   padding: 0.8rem 1.1rem;
   font-weight: 600;
@@ -107,7 +109,8 @@ h1 {
 }
 
 .primary-btn:hover,
-.secondary-btn:hover {
+.secondary-btn:hover,
+.mini-btn:hover {
   transform: translateY(-1px);
 }
 
@@ -375,6 +378,7 @@ h1 {
   gap: 12px;
   padding-top: 6px;
   border-top: 1px solid rgba(148, 163, 184, 0.15);
+  flex-wrap: wrap;
 }
 
 .repo-stats {
@@ -390,11 +394,30 @@ h1 {
   gap: 4px;
 }
 
+.repo-actions {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mini-btn {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.8);
+  color: var(--text);
+  font-size: 0.72rem;
+  padding: 0.55rem 0.8rem;
+}
+
+.delete-btn {
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #fca5a5;
+}
+
 .repo-link {
   text-decoration: none;
   color: #c4b5fd;
   font-weight: 600;
   font-size: 0.82rem;
+  margin-left: auto;
 }
 
 .modal {
@@ -496,10 +519,15 @@ h1 {
   .toolbar-row,
   .toolbar-actions,
   .modal-actions,
-  .repo-footer {
+  .repo-footer,
+  .repo-actions {
     align-items: flex-start;
     flex-direction: column;
     gap: 14px;
+  }
+
+  .repo-link {
+    margin-left: 0;
   }
 
   .form-grid {

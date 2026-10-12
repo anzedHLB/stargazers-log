@@ -74,6 +74,7 @@ const FALLBACK_REPOS = [
 ];
 
 const STORAGE_KEY = 'stargazers-log-repos';
+const HIDDEN_REPOS_KEY = 'stargazers-log-hidden';
 const repoList = document.querySelector('#repo-list');
 const template = document.querySelector('#repo-card-template');
 const searchInput = document.querySelector('#repo-search');
@@ -86,12 +87,18 @@ const refreshButton = document.querySelector('#refresh-repos');
 const sortSelect = document.querySelector('#sort-select');
 const tagFilter = document.querySelector('#tag-filter');
 const modal = document.querySelector('#add-repo-modal');
+const modalTitle = document.querySelector('#modal-title');
 const repoForm = document.querySelector('#repo-form');
+const submitButton = document.querySelector('#repo-form-submit');
 const openModalButton = document.querySelector('#open-add-modal');
 const closeModalButton = document.querySelector('#close-add-modal');
 const cancelAddRepoButton = document.querySelector('#cancel-add-repo');
 
 let allRepos = [...FALLBACK_REPOS];
+
+function repoKey(owner, name) {
+  return `${String(owner || '').trim().toLowerCase()}/${String(name || '').trim().toLowerCase()}`;
+}
 
 function saveCustomRepos(repos) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(repos));
@@ -104,6 +111,24 @@ function getCustomRepos() {
   } catch (error) {
     return [];
   }
+}
+
+function saveHiddenRepos(keys) {
+  localStorage.setItem(HIDDEN_REPOS_KEY, JSON.stringify(keys));
+}
+
+function getHiddenRepos() {
+  try {
+    const raw = localStorage.getItem(HIDDEN_REPOS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function filterHiddenRepos(repos) {
+  const hidden = new Set(getHiddenRepos());
+  return repos.filter((repo) => !hidden.has(repoKey(repo.owner, repo.name)));
 }
 
 function formatNumber(value) {
@@ -174,7 +199,7 @@ function applyFilters() {
   const query = searchInput.value.toLowerCase().trim();
   const selectedTag = tagFilter.value;
 
-  let filtered = allRepos.filter((repo) => {
+  let filtered = filterHiddenRepos(allRepos).filter((repo) => {
     const matchesQuery =
       !query ||
       `${repo.owner} ${repo.name} ${repo.description || ''} ${repo.language || ''}`
@@ -193,6 +218,10 @@ function renderRepos(items) {
 
   items.forEach((repo) => {
     const card = template.content.cloneNode(true);
+    const article = card.querySelector('.repo-card');
+    article.dataset.owner = repo.owner;
+    article.dataset.name = repo.name;
+
     card.querySelector('.repo-owner').textContent = repo.owner;
     card.querySelector('.repo-name').textContent = repo.name;
     card.querySelector('.repo-description').textContent =
@@ -237,6 +266,64 @@ function normalizeRepo(repo) {
   };
 }
 
+function writeRepoForm(repo = null, mode = 'add') {
+  const formData = repo ? {
+    owner: repo.owner || '',
+    name: repo.name || '',
+    description: repo.description || '',
+    language: repo.language || '',
+    date: repo.date ? repo.date.split('T')[0] : '',
+    tag: repo.tag || 'learning',
+  } : {
+    owner: '',
+    name: '',
+    description: '',
+    language: '',
+    date: '',
+    tag: 'learning',
+  };
+
+  repoForm.reset();
+  repoForm.dataset.mode = mode;
+
+  repoForm.elements.owner.value = formData.owner;
+  repoForm.elements.name.value = formData.name;
+  repoForm.elements.description.value = formData.description;
+  repoForm.elements.language.value = formData.language;
+  repoForm.elements.date.value = formData.date;
+  repoForm.elements.tag.value = formData.tag;
+
+  modalTitle.textContent = mode === 'edit' ? 'Edit repository' : 'Add repository';
+  submitButton.textContent = mode === 'edit' ? 'Save changes' : 'Save repo';
+}
+
+function openModal(mode = 'add', repo = null) {
+  writeRepoForm(repo, mode);
+  modal.classList.remove('hidden');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeModal() {
+  modal.classList.add('hidden');
+  modal.setAttribute('aria-hidden', 'true');
+  repoForm.reset();
+  repoForm.dataset.mode = 'add';
+}
+
+function upsertCustomRepo(repo) {
+  const existing = getCustomRepos();
+  const cleaned = existing.filter((item) => repoKey(item.owner, item.name) !== repoKey(repo.owner, repo.name));
+  const updated = [repo, ...cleaned];
+  saveCustomRepos(updated);
+  return updated;
+}
+
+function removeHiddenRepoKey(key) {
+  const current = new Set(getHiddenRepos());
+  current.delete(key);
+  saveHiddenRepos([...current]);
+}
+
 async function fetchStarredRepos(username) {
   if (!username || !username.trim()) {
     updateStatus('Please enter a valid GitHub username.', true);
@@ -267,17 +354,6 @@ async function fetchStarredRepos(username) {
   }
 }
 
-function openModal() {
-  modal.classList.remove('hidden');
-  modal.setAttribute('aria-hidden', 'false');
-}
-
-function closeModal() {
-  modal.classList.add('hidden');
-  modal.setAttribute('aria-hidden', 'true');
-  repoForm.reset();
-}
-
 function addCustomRepo(event) {
   event.preventDefault();
 
@@ -294,7 +370,7 @@ function addCustomRepo(event) {
     return;
   }
 
-  const customRepo = {
+  const repo = {
     owner,
     name,
     description: description || 'Added manually to your log.',
@@ -307,14 +383,59 @@ function addCustomRepo(event) {
     date: date || new Date().toISOString(),
   };
 
-  const existing = getCustomRepos();
-  const updated = [customRepo, ...existing];
-  saveCustomRepos(updated);
+  const mode = repoForm.dataset.mode || 'add';
 
-  allRepos = [...allRepos.filter((repo) => !(repo.owner === owner && repo.name === name)), ...updated];
+  if (mode === 'edit') {
+    upsertCustomRepo(repo);
+    removeHiddenRepoKey(repoKey(owner, name));
+    updateStatus(`Updated ${owner}/${name}.`);
+  } else {
+    const existing = getCustomRepos();
+    const updated = [repo, ...existing];
+    saveCustomRepos(updated);
+    removeHiddenRepoKey(repoKey(owner, name));
+    updateStatus(`Saved ${owner}/${name} to your list.`);
+  }
+
+  allRepos = [...allRepos.filter((item) => repoKey(item.owner, item.name) !== repoKey(owner, name)), repo];
   renderRepos(applyFilters());
-  updateStatus(`Saved ${owner}/${name} to your list.`);
   closeModal();
+}
+
+function handleRepoCardAction(event) {
+  const button = event.target.closest('[data-action]');
+  if (!button) {
+    return;
+  }
+
+  const card = button.closest('.repo-card');
+  if (!card) {
+    return;
+  }
+
+  const repo = {
+    owner: card.dataset.owner,
+    name: card.dataset.name,
+  };
+
+  const existing = allRepos.find((item) => repoKey(item.owner, item.name) === repoKey(repo.owner, repo.name));
+
+  if (button.dataset.action === 'edit') {
+    openModal('edit', existing || repo);
+    return;
+  }
+
+  if (button.dataset.action === 'delete') {
+    const hidden = new Set(getHiddenRepos());
+    hidden.add(repoKey(repo.owner, repo.name));
+    saveHiddenRepos([...hidden]);
+
+    const custom = getCustomRepos().filter((item) => repoKey(item.owner, item.name) !== repoKey(repo.owner, repo.name));
+    saveCustomRepos(custom);
+
+    renderRepos(applyFilters());
+    updateStatus(`Removed ${repo.owner}/${repo.name} from your log.`);
+  }
 }
 
 searchInput.addEventListener('input', () => {
@@ -333,7 +454,7 @@ refreshButton.addEventListener('click', () => {
   fetchStarredRepos(usernameInput.value);
 });
 
-openModalButton.addEventListener('click', openModal);
+openModalButton.addEventListener('click', () => openModal('add'));
 closeModalButton.addEventListener('click', closeModal);
 cancelAddRepoButton.addEventListener('click', closeModal);
 modal.addEventListener('click', (event) => {
@@ -342,6 +463,7 @@ modal.addEventListener('click', (event) => {
   }
 });
 
+repoList.addEventListener('click', handleRepoCardAction);
 repoForm.addEventListener('submit', addCustomRepo);
 
 window.addEventListener('DOMContentLoaded', () => {
