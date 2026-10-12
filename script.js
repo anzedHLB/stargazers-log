@@ -79,6 +79,7 @@ const template = document.querySelector('#repo-card-template');
 const searchInput = document.querySelector('#repo-search');
 const repoCount = document.querySelector('#repo-count');
 const languageCount = document.querySelector('#language-count');
+const yearLabel = document.querySelector('#year-label');
 const resultsLabel = document.querySelector('#results-label');
 const statusMessage = document.querySelector('#status-message');
 const usernameInput = document.querySelector('#github-username');
@@ -138,6 +139,27 @@ function formatDate(dateString) {
   }).format(date);
 }
 
+function getRepoYear(repo) {
+  if (!repo || !repo.date) {
+    return null;
+  }
+
+  const parsedDate = new Date(repo.date);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return null;
+  }
+
+  return parsedDate.getFullYear();
+}
+
+function getLatestYear(repos) {
+  const years = repos
+    .map((repo) => getRepoYear(repo))
+    .filter((year) => Number.isInteger(year));
+
+  return years.length ? Math.max(...years) : new Date().getFullYear();
+}
+
 function getUniqueLanguages(repos) {
   const languages = new Set(
     repos
@@ -146,6 +168,19 @@ function getUniqueLanguages(repos) {
   );
 
   return languages.size;
+}
+
+function deduplicateRepos(repos) {
+  const seen = new Set();
+  return repos.filter((repo) => {
+    const key = getRepoKey(repo);
+    if (!key || seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
 }
 
 function sortRepos(items) {
@@ -178,7 +213,7 @@ function applyFilters() {
   const query = searchInput.value.toLowerCase().trim();
   const selectedTag = tagFilter.value;
 
-  let filtered = allRepos.filter((repo) => {
+  const filtered = allRepos.filter((repo) => {
     const matchesQuery =
       !query ||
       `${repo.owner} ${repo.name} ${repo.description || ''} ${repo.language || ''}`
@@ -189,42 +224,54 @@ function applyFilters() {
     return matchesQuery && matchesTag;
   });
 
-  return sortRepos(filtered);
+  return sortRepos(deduplicateRepos(filtered));
 }
 
 function renderRepos(items) {
+  const uniqueItems = deduplicateRepos(items);
   repoList.innerHTML = '';
 
-  items.forEach((repo) => {
-    const card = template.content.cloneNode(true);
-    card.querySelector('.repo-owner').textContent = repo.owner;
-    card.querySelector('.repo-name').textContent = repo.name;
-    card.querySelector('.repo-description').textContent =
-      repo.description || 'No description provided.';
-    card.querySelector('.language-name').textContent = repo.language || 'Unknown';
-    card.querySelector('.repo-tag').textContent = repo.tag || 'general';
-    card.querySelector('.repo-date').textContent = formatDate(repo.date);
-    card.querySelector('.repo-stars').textContent = formatNumber(repo.stars || 0);
-    card.querySelector('.repo-forks').textContent = formatNumber(repo.forks || 0);
-    card.querySelector('.repo-issues').textContent = formatNumber(repo.issues || 0);
+  if (uniqueItems.length === 0) {
+    const emptyState = document.createElement('div');
+    emptyState.className = 'empty-state';
+    emptyState.textContent = 'No repositories match the current filters.';
+    repoList.appendChild(emptyState);
+  } else {
+    uniqueItems.forEach((repo) => {
+      const card = template.content.cloneNode(true);
+      card.querySelector('.repo-owner').textContent = repo.owner;
+      card.querySelector('.repo-name').textContent = repo.name;
+      card.querySelector('.repo-description').textContent =
+        repo.description || 'No description provided.';
+      card.querySelector('.language-name').textContent = repo.language || 'Unknown';
+      card.querySelector('.repo-tag').textContent = repo.tag || 'general';
+      card.querySelector('.repo-date').textContent = formatDate(repo.date);
+      card.querySelector('.repo-stars').textContent = formatNumber(repo.stars || 0);
+      card.querySelector('.repo-forks').textContent = formatNumber(repo.forks || 0);
+      card.querySelector('.repo-issues').textContent = formatNumber(repo.issues || 0);
 
-    const repoLink = card.querySelector('.repo-link');
-    const repoUrl = repo.url || `https://github.com/${repo.owner}/${repo.name}`;
-    repoLink.href = repoUrl;
+      const repoLink = card.querySelector('.repo-link');
+      const repoUrl = repo.url || `https://github.com/${repo.owner}/${repo.name}`;
+      repoLink.href = repoUrl;
 
-    const deleteButton = card.querySelector('.delete-btn');
-    deleteButton.addEventListener('click', () => deleteRepo(repo));
+      const deleteButton = card.querySelector('.delete-btn');
+      deleteButton.addEventListener('click', () => deleteRepo(repo));
 
-    const editButton = card.querySelector('.edit-btn');
-    editButton.addEventListener('click', () => openEditModal(repo));
+      const editButton = card.querySelector('.edit-btn');
+      editButton.addEventListener('click', () => openEditModal(repo));
 
-    repoList.appendChild(card);
-  });
+      repoList.appendChild(card);
+    });
+  }
 
-  const count = items.length;
+  const count = uniqueItems.length;
   repoCount.textContent = String(count);
-  languageCount.textContent = String(getUniqueLanguages(items));
+  languageCount.textContent = String(getUniqueLanguages(uniqueItems));
   resultsLabel.textContent = `${count} result${count === 1 ? '' : 's'}`;
+
+  if (yearLabel) {
+    yearLabel.textContent = String(getLatestYear(uniqueItems));
+  }
 }
 
 function updateStatus(message, isError = false) {
@@ -248,7 +295,11 @@ function normalizeRepo(repo) {
 }
 
 function getRepoKey(repo) {
-  return `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`;
+  if (!repo || !repo.owner || !repo.name) {
+    return '';
+  }
+
+  return `${String(repo.owner).toLowerCase()}/${String(repo.name).toLowerCase()}`;
 }
 
 function deleteRepo(repo) {
@@ -258,7 +309,7 @@ function deleteRepo(repo) {
   );
   saveCustomRepos(filtered);
 
-  allRepos = allRepos.filter((entry) => getRepoKey(entry) !== getRepoKey(repo));
+  allRepos = deduplicateRepos(allRepos.filter((entry) => getRepoKey(entry) !== getRepoKey(repo)));
   renderRepos(applyFilters());
   updateStatus(`Deleted ${repo.owner}/${repo.name}.`);
 }
@@ -318,8 +369,10 @@ function updateRepo(event) {
   );
   saveCustomRepos(nextCustomRepos);
 
-  allRepos = allRepos.map((repo) =>
-    getRepoKey(repo) === repoKey ? { ...repo, ...updatedRepo } : repo
+  allRepos = deduplicateRepos(
+    allRepos.map((repo) =>
+      getRepoKey(repo) === repoKey ? { ...repo, ...updatedRepo } : repo
+    )
   );
 
   renderRepos(applyFilters());
@@ -336,7 +389,9 @@ async function fetchStarredRepos(username) {
   updateStatus('Loading starred repositories...');
 
   try {
-    const response = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}/starred?per_page=100`);
+    const response = await fetch(
+      `https://api.github.com/users/${encodeURIComponent(username)}/starred?per_page=100`
+    );
 
     if (!response.ok) {
       throw new Error(`GitHub API returned ${response.status}`);
@@ -345,13 +400,23 @@ async function fetchStarredRepos(username) {
     const payload = await response.json();
     const fetchedRepos = Array.isArray(payload) ? payload.map((repo) => normalizeRepo(repo)) : [];
     const customRepos = getCustomRepos();
+    const mergedRepos = deduplicateRepos([
+      ...fetchedRepos.map((repo) => ({ ...repo, tag: repo.tag || 'learning' })),
+      ...customRepos,
+    ]);
 
-    allRepos = [...fetchedRepos.map((repo) => ({ ...repo, tag: repo.tag || 'learning' })), ...customRepos];
+    allRepos = mergedRepos;
     renderRepos(applyFilters());
+
+    if (fetchedRepos.length === 0) {
+      updateStatus(`No starred repos found for ${username}.`);
+      return;
+    }
+
     updateStatus(`Loaded ${fetchedRepos.length} starred repos for ${username}.`);
   } catch (error) {
     const customRepos = getCustomRepos();
-    allRepos = [...FALLBACK_REPOS, ...customRepos];
+    allRepos = deduplicateRepos([...FALLBACK_REPOS, ...customRepos]);
     renderRepos(applyFilters());
     updateStatus('Could not load live data, showing fallback repos instead.', true);
   }
@@ -398,10 +463,10 @@ function addCustomRepo(event) {
   };
 
   const existing = getCustomRepos();
-  const updated = [customRepo, ...existing];
+  const updated = deduplicateRepos([customRepo, ...existing]);
   saveCustomRepos(updated);
 
-  allRepos = [...allRepos.filter((repo) => !(repo.owner === owner && repo.name === name)), ...updated];
+  allRepos = deduplicateRepos([...allRepos.filter((repo) => getRepoKey(repo) !== getRepoKey(customRepo)), ...updated]);
   renderRepos(applyFilters());
   updateStatus(`Saved ${owner}/${name} to your list.`);
   closeAddModal();
@@ -445,7 +510,7 @@ editRepoForm.addEventListener('submit', updateRepo);
 
 window.addEventListener('DOMContentLoaded', () => {
   const customRepos = getCustomRepos();
-  allRepos = [...FALLBACK_REPOS, ...customRepos];
+  allRepos = deduplicateRepos([...FALLBACK_REPOS, ...customRepos]);
   renderRepos(applyFilters());
   fetchStarredRepos(usernameInput.value);
 });

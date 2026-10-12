@@ -314,6 +314,16 @@ h1 {
   margin-top: 8px;
 }
 
+.empty-state {
+  grid-column: 1 / -1;
+  padding: 28px 20px;
+  border: 1px dashed rgba(148, 163, 184, 0.25);
+  border-radius: 18px;
+  text-align: center;
+  color: var(--muted);
+  background: rgba(15, 23, 42, 0.45);
+}
+
 .repo-card {
   padding: 20px;
   display: grid;
