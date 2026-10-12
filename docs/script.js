@@ -74,7 +74,6 @@ const FALLBACK_REPOS = [
 ];
 
 const STORAGE_KEY = 'stargazers-log-repos';
-const HIDDEN_REPOS_KEY = 'stargazers-log-hidden';
 const repoList = document.querySelector('#repo-list');
 const template = document.querySelector('#repo-card-template');
 const searchInput = document.querySelector('#repo-search');
@@ -86,19 +85,17 @@ const usernameInput = document.querySelector('#github-username');
 const refreshButton = document.querySelector('#refresh-repos');
 const sortSelect = document.querySelector('#sort-select');
 const tagFilter = document.querySelector('#tag-filter');
-const modal = document.querySelector('#add-repo-modal');
-const modalTitle = document.querySelector('#modal-title');
+const addModal = document.querySelector('#add-repo-modal');
+const editModal = document.querySelector('#edit-repo-modal');
 const repoForm = document.querySelector('#repo-form');
-const submitButton = document.querySelector('#repo-form-submit');
+const editRepoForm = document.querySelector('#edit-repo-form');
 const openModalButton = document.querySelector('#open-add-modal');
-const closeModalButton = document.querySelector('#close-add-modal');
+const closeAddModalButton = document.querySelector('#close-add-modal');
 const cancelAddRepoButton = document.querySelector('#cancel-add-repo');
+const closeEditModalButton = document.querySelector('#close-edit-modal');
+const cancelEditRepoButton = document.querySelector('#cancel-edit-repo');
 
 let allRepos = [...FALLBACK_REPOS];
-
-function repoKey(owner, name) {
-  return `${String(owner || '').trim().toLowerCase()}/${String(name || '').trim().toLowerCase()}`;
-}
 
 function saveCustomRepos(repos) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(repos));
@@ -111,24 +108,6 @@ function getCustomRepos() {
   } catch (error) {
     return [];
   }
-}
-
-function saveHiddenRepos(keys) {
-  localStorage.setItem(HIDDEN_REPOS_KEY, JSON.stringify(keys));
-}
-
-function getHiddenRepos() {
-  try {
-    const raw = localStorage.getItem(HIDDEN_REPOS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (error) {
-    return [];
-  }
-}
-
-function filterHiddenRepos(repos) {
-  const hidden = new Set(getHiddenRepos());
-  return repos.filter((repo) => !hidden.has(repoKey(repo.owner, repo.name)));
 }
 
 function formatNumber(value) {
@@ -199,7 +178,7 @@ function applyFilters() {
   const query = searchInput.value.toLowerCase().trim();
   const selectedTag = tagFilter.value;
 
-  let filtered = filterHiddenRepos(allRepos).filter((repo) => {
+  let filtered = allRepos.filter((repo) => {
     const matchesQuery =
       !query ||
       `${repo.owner} ${repo.name} ${repo.description || ''} ${repo.language || ''}`
@@ -218,10 +197,6 @@ function renderRepos(items) {
 
   items.forEach((repo) => {
     const card = template.content.cloneNode(true);
-    const article = card.querySelector('.repo-card');
-    article.dataset.owner = repo.owner;
-    article.dataset.name = repo.name;
-
     card.querySelector('.repo-owner').textContent = repo.owner;
     card.querySelector('.repo-name').textContent = repo.name;
     card.querySelector('.repo-description').textContent =
@@ -236,6 +211,12 @@ function renderRepos(items) {
     const repoLink = card.querySelector('.repo-link');
     const repoUrl = repo.url || `https://github.com/${repo.owner}/${repo.name}`;
     repoLink.href = repoUrl;
+
+    const deleteButton = card.querySelector('.delete-btn');
+    deleteButton.addEventListener('click', () => deleteRepo(repo));
+
+    const editButton = card.querySelector('.edit-btn');
+    editButton.addEventListener('click', () => openEditModal(repo));
 
     repoList.appendChild(card);
   });
@@ -266,62 +247,84 @@ function normalizeRepo(repo) {
   };
 }
 
-function writeRepoForm(repo = null, mode = 'add') {
-  const formData = repo ? {
-    owner: repo.owner || '',
-    name: repo.name || '',
-    description: repo.description || '',
-    language: repo.language || '',
-    date: repo.date ? repo.date.split('T')[0] : '',
-    tag: repo.tag || 'learning',
-  } : {
-    owner: '',
-    name: '',
-    description: '',
-    language: '',
-    date: '',
-    tag: 'learning',
+function getRepoKey(repo) {
+  return `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`;
+}
+
+function deleteRepo(repo) {
+  const customRepos = getCustomRepos();
+  const filtered = customRepos.filter(
+    (entry) => getRepoKey(entry) !== getRepoKey(repo)
+  );
+  saveCustomRepos(filtered);
+
+  allRepos = allRepos.filter((entry) => getRepoKey(entry) !== getRepoKey(repo));
+  renderRepos(applyFilters());
+  updateStatus(`Deleted ${repo.owner}/${repo.name}.`);
+}
+
+function openEditModal(repo) {
+  editRepoForm.elements.repoKey.value = getRepoKey(repo);
+  editRepoForm.elements.owner.value = repo.owner;
+  editRepoForm.elements.name.value = repo.name;
+  editRepoForm.elements.description.value = repo.description || '';
+  editRepoForm.elements.language.value = repo.language || '';
+  editRepoForm.elements.date.value = repo.date ? new Date(repo.date).toISOString().slice(0, 10) : '';
+  editRepoForm.elements.tag.value = repo.tag || 'learning';
+
+  editModal.classList.remove('hidden');
+  editModal.setAttribute('aria-hidden', 'false');
+}
+
+function closeEditModal() {
+  editModal.classList.add('hidden');
+  editModal.setAttribute('aria-hidden', 'true');
+  editRepoForm.reset();
+}
+
+function updateRepo(event) {
+  event.preventDefault();
+
+  const formData = new FormData(editRepoForm);
+  const repoKey = String(formData.get('repoKey') || '').trim();
+  const owner = String(formData.get('owner') || '').trim();
+  const name = String(formData.get('name') || '').trim();
+  const description = String(formData.get('description') || '').trim();
+  const language = String(formData.get('language') || '').trim();
+  const date = String(formData.get('date') || '').trim();
+  const tag = String(formData.get('tag') || 'learning').trim();
+
+  if (!repoKey || !owner || !name) {
+    updateStatus('Owner and repository name are required.', true);
+    return;
+  }
+
+  const updatedRepo = {
+    owner,
+    name,
+    description: description || 'Added manually to your log.',
+    language: language || 'Custom',
+    tag,
+    stars: 0,
+    forks: 0,
+    issues: 0,
+    url: `https://github.com/${owner}/${name}`,
+    date: date || new Date().toISOString(),
   };
 
-  repoForm.reset();
-  repoForm.dataset.mode = mode;
+  const customRepos = getCustomRepos();
+  const nextCustomRepos = customRepos.map((repo) =>
+    getRepoKey(repo) === repoKey ? updatedRepo : repo
+  );
+  saveCustomRepos(nextCustomRepos);
 
-  repoForm.elements.owner.value = formData.owner;
-  repoForm.elements.name.value = formData.name;
-  repoForm.elements.description.value = formData.description;
-  repoForm.elements.language.value = formData.language;
-  repoForm.elements.date.value = formData.date;
-  repoForm.elements.tag.value = formData.tag;
+  allRepos = allRepos.map((repo) =>
+    getRepoKey(repo) === repoKey ? { ...repo, ...updatedRepo } : repo
+  );
 
-  modalTitle.textContent = mode === 'edit' ? 'Edit repository' : 'Add repository';
-  submitButton.textContent = mode === 'edit' ? 'Save changes' : 'Save repo';
-}
-
-function openModal(mode = 'add', repo = null) {
-  writeRepoForm(repo, mode);
-  modal.classList.remove('hidden');
-  modal.setAttribute('aria-hidden', 'false');
-}
-
-function closeModal() {
-  modal.classList.add('hidden');
-  modal.setAttribute('aria-hidden', 'true');
-  repoForm.reset();
-  repoForm.dataset.mode = 'add';
-}
-
-function upsertCustomRepo(repo) {
-  const existing = getCustomRepos();
-  const cleaned = existing.filter((item) => repoKey(item.owner, item.name) !== repoKey(repo.owner, repo.name));
-  const updated = [repo, ...cleaned];
-  saveCustomRepos(updated);
-  return updated;
-}
-
-function removeHiddenRepoKey(key) {
-  const current = new Set(getHiddenRepos());
-  current.delete(key);
-  saveHiddenRepos([...current]);
+  renderRepos(applyFilters());
+  updateStatus(`Updated ${owner}/${name}.`);
+  closeEditModal();
 }
 
 async function fetchStarredRepos(username) {
@@ -354,6 +357,17 @@ async function fetchStarredRepos(username) {
   }
 }
 
+function openAddModal() {
+  addModal.classList.remove('hidden');
+  addModal.setAttribute('aria-hidden', 'false');
+}
+
+function closeAddModal() {
+  addModal.classList.add('hidden');
+  addModal.setAttribute('aria-hidden', 'true');
+  repoForm.reset();
+}
+
 function addCustomRepo(event) {
   event.preventDefault();
 
@@ -370,7 +384,7 @@ function addCustomRepo(event) {
     return;
   }
 
-  const repo = {
+  const customRepo = {
     owner,
     name,
     description: description || 'Added manually to your log.',
@@ -383,59 +397,14 @@ function addCustomRepo(event) {
     date: date || new Date().toISOString(),
   };
 
-  const mode = repoForm.dataset.mode || 'add';
+  const existing = getCustomRepos();
+  const updated = [customRepo, ...existing];
+  saveCustomRepos(updated);
 
-  if (mode === 'edit') {
-    upsertCustomRepo(repo);
-    removeHiddenRepoKey(repoKey(owner, name));
-    updateStatus(`Updated ${owner}/${name}.`);
-  } else {
-    const existing = getCustomRepos();
-    const updated = [repo, ...existing];
-    saveCustomRepos(updated);
-    removeHiddenRepoKey(repoKey(owner, name));
-    updateStatus(`Saved ${owner}/${name} to your list.`);
-  }
-
-  allRepos = [...allRepos.filter((item) => repoKey(item.owner, item.name) !== repoKey(owner, name)), repo];
+  allRepos = [...allRepos.filter((repo) => !(repo.owner === owner && repo.name === name)), ...updated];
   renderRepos(applyFilters());
-  closeModal();
-}
-
-function handleRepoCardAction(event) {
-  const button = event.target.closest('[data-action]');
-  if (!button) {
-    return;
-  }
-
-  const card = button.closest('.repo-card');
-  if (!card) {
-    return;
-  }
-
-  const repo = {
-    owner: card.dataset.owner,
-    name: card.dataset.name,
-  };
-
-  const existing = allRepos.find((item) => repoKey(item.owner, item.name) === repoKey(repo.owner, repo.name));
-
-  if (button.dataset.action === 'edit') {
-    openModal('edit', existing || repo);
-    return;
-  }
-
-  if (button.dataset.action === 'delete') {
-    const hidden = new Set(getHiddenRepos());
-    hidden.add(repoKey(repo.owner, repo.name));
-    saveHiddenRepos([...hidden]);
-
-    const custom = getCustomRepos().filter((item) => repoKey(item.owner, item.name) !== repoKey(repo.owner, repo.name));
-    saveCustomRepos(custom);
-
-    renderRepos(applyFilters());
-    updateStatus(`Removed ${repo.owner}/${repo.name} from your log.`);
-  }
+  updateStatus(`Saved ${owner}/${name} to your list.`);
+  closeAddModal();
 }
 
 searchInput.addEventListener('input', () => {
@@ -454,17 +423,25 @@ refreshButton.addEventListener('click', () => {
   fetchStarredRepos(usernameInput.value);
 });
 
-openModalButton.addEventListener('click', () => openModal('add'));
-closeModalButton.addEventListener('click', closeModal);
-cancelAddRepoButton.addEventListener('click', closeModal);
-modal.addEventListener('click', (event) => {
+openModalButton.addEventListener('click', openAddModal);
+closeAddModalButton.addEventListener('click', closeAddModal);
+cancelAddRepoButton.addEventListener('click', closeAddModal);
+addModal.addEventListener('click', (event) => {
   if (event.target.dataset.close === 'true') {
-    closeModal();
+    closeAddModal();
   }
 });
 
-repoList.addEventListener('click', handleRepoCardAction);
+closeEditModalButton.addEventListener('click', closeEditModal);
+cancelEditRepoButton.addEventListener('click', closeEditModal);
+editModal.addEventListener('click', (event) => {
+  if (event.target.dataset.close === 'true') {
+    closeEditModal();
+  }
+});
+
 repoForm.addEventListener('submit', addCustomRepo);
+editRepoForm.addEventListener('submit', updateRepo);
 
 window.addEventListener('DOMContentLoaded', () => {
   const customRepos = getCustomRepos();
