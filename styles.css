@@ -40,6 +40,15 @@ button {
   cursor: pointer;
 }
 
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid rgba(196, 181, 253, 0.9);
+  outline-offset: 2px;
+}
+
 .page-shell {
   max-width: 1100px;
   margin: 0 auto;
@@ -208,6 +217,15 @@ h1 {
   padding: 0 14px;
   flex: 1;
   min-width: 240px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-wrap:focus-within,
+.username-field:focus-within,
+.sort-group:focus-within,
+.tag-group:focus-within {
+  border-color: rgba(196, 181, 253, 0.7);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
 }
 
 .search-wrap svg {
@@ -253,6 +271,7 @@ h1 {
   border: 1px solid var(--card-border);
   border-radius: 14px;
   padding: 0 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .username-field span,
@@ -275,6 +294,7 @@ h1 {
   border: 1px solid var(--card-border);
   border-radius: 14px;
   padding: 0 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .sort-group select,
@@ -328,6 +348,13 @@ h1 {
   padding: 20px;
   display: grid;
   gap: 16px;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.repo-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(196, 181, 253, 0.45);
+  box-shadow: 0 24px 45px rgba(15, 23, 42, 0.6);
 }
 
 .repo-name {
@@ -345,6 +372,11 @@ h1 {
   background: rgba(251, 191, 36, 0.12);
   color: #fbbf24;
   font-size: 1.2rem;
+  transition: transform 0.2s ease;
+}
+
+.repo-card:hover .star-badge {
+  transform: scale(1.06);
 }
 
 .repo-description {
