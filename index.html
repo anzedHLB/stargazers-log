@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stargazers Log</title>
+    <meta
+      name="description"
+      content="A simple log of repositories I've starred."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">GitHub activity</p>
+          <h1>Stargazers Log</h1>
+        </div>
+        <button class="primary-btn" type="button">+ Add repo</button>
+      </header>
+
+      <main class="content">
+        <section class="hero card">
+          <div class="hero-copy">
+            <p class="tag">Curated list</p>
+            <h2>A log of the repositories I’ve starred.</h2>
+            <p>
+              Keep track of projects worth revisiting, learning from, and
+              experimenting with.
+            </p>
+          </div>
+          <div class="stats" aria-label="Starred repositories summary">
+            <div class="stat-box">
+              <span class="stat-value" id="repo-count">0</span>
+              <span class="stat-label">Repos</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value">12</span>
+              <span class="stat-label">Languages</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value">2026</span>
+              <span class="stat-label">Year</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="toolbar card">
+          <label class="search-wrap" for="repo-search">
+            <span class="sr-only">Search repositories</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M10.5 3a7.5 7.5 0 015.94 12.56l4.39 4.39 1.41-1.41-4.39-4.39A7.5 7.5 0 1110.5 3zm0 2a5.5 5.5 0 104.2 9.4 5.5 5.5 0 00-4.2-9.4z"
+              />
+            </svg>
+            <input
+              id="repo-search"
+              type="search"
+              placeholder="Search repositories..."
+              aria-label="Search repositories"
+            />
+          </label>
+        </section>
+
+        <section class="list-header">
+          <h3>Starred repositories</h3>
+          <span id="results-label">0 results</span>
+        </section>
+
+        <section id="repo-list" class="repo-list" aria-live="polite"></section>
+      </main>
+    </div>
+
+    <template id="repo-card-template">
+      <article class="repo-card card">
+        <div class="repo-topline">
+          <div>
+            <p class="repo-owner"></p>
+            <h4 class="repo-name"></h4>
+          </div>
+          <span class="star-badge">★</span>
+        </div>
+
+        <p class="repo-description"></p>
+
+        <div class="repo-meta">
+          <span class="language-pill">
+            <span class="language-dot"></span>
+            <span class="language-name"></span>
+          </span>
+          <span class="repo-date"></span>
+        </div>
+      </article>
+    </template>
+
+    <script src="script.js"></script>
+  </body>
+</html>
